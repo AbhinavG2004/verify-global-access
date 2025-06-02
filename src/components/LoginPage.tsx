@@ -2,18 +2,22 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Mail, Phone, ArrowLeft, Check } from 'lucide-react';
+import { Mail, Phone, ArrowLeft, Check, User } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
-type VerificationStep = 'choose' | 'email-input' | 'email-verify' | 'phone-input' | 'phone-verify' | 'success';
+type VerificationStep = 'details' | 'email-verify' | 'phone-verify' | 'success';
+type ContactMethod = 'email' | 'phone';
 
 const LoginPage = () => {
-  const [step, setStep] = useState<VerificationStep>('choose');
+  const [step, setStep] = useState<VerificationStep>('details');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
+  const [contactMethod, setContactMethod] = useState<ContactMethod>('email');
   const [emailCode, setEmailCode] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -31,23 +35,18 @@ const LoginPage = () => {
     { code: '+55', country: 'Brazil', flag: '🇧🇷' },
   ];
 
-  const handleEmailSubmit = async () => {
-    if (!email) {
+  const handleDetailsSubmit = async () => {
+    if (!name.trim()) {
+      toast({ title: "Please enter your name", variant: "destructive" });
+      return;
+    }
+    
+    if (contactMethod === 'email' && !email.trim()) {
       toast({ title: "Please enter your email address", variant: "destructive" });
       return;
     }
     
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      setStep('email-verify');
-      toast({ title: "Verification code sent to your email!" });
-    }, 1500);
-  };
-
-  const handlePhoneSubmit = async () => {
-    if (!phone) {
+    if (contactMethod === 'phone' && !phone.trim()) {
       toast({ title: "Please enter your phone number", variant: "destructive" });
       return;
     }
@@ -56,8 +55,13 @@ const LoginPage = () => {
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
-      setStep('phone-verify');
-      toast({ title: "OTP sent to your phone!" });
+      if (contactMethod === 'email') {
+        setStep('email-verify');
+        toast({ title: "Verification code sent to your email!" });
+      } else {
+        setStep('phone-verify');
+        toast({ title: "OTP sent to your phone!" });
+      }
     }, 1500);
   };
 
@@ -68,7 +72,6 @@ const LoginPage = () => {
     }
     
     setIsLoading(true);
-    // Simulate verification
     setTimeout(() => {
       setIsLoading(false);
       if (emailCode === '123456') {
@@ -87,7 +90,6 @@ const LoginPage = () => {
     }
     
     setIsLoading(true);
-    // Simulate verification
     setTimeout(() => {
       setIsLoading(false);
       if (phoneCode === '1234') {
@@ -100,233 +102,289 @@ const LoginPage = () => {
   };
 
   const goBack = () => {
-    if (step === 'email-input' || step === 'phone-input') {
-      setStep('choose');
-    } else if (step === 'email-verify') {
-      setStep('email-input');
-    } else if (step === 'phone-verify') {
-      setStep('phone-input');
+    if (step === 'email-verify' || step === 'phone-verify') {
+      setStep('details');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl border-0 bg-white/95 backdrop-blur">
-        <CardHeader className="text-center space-y-2">
-          {step !== 'choose' && step !== 'success' && (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-lg shadow-2xl border-0 bg-white/80 backdrop-blur-xl">
+        <CardHeader className="text-center space-y-4 pb-8">
+          {step !== 'details' && step !== 'success' && (
             <Button
               variant="ghost"
               size="sm"
               onClick={goBack}
-              className="absolute left-4 top-4 p-2"
+              className="absolute left-4 top-4 p-2 hover:bg-slate-100 rounded-full"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
           
-          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-            {step === 'success' ? <Check className="h-8 w-8" /> : 'NG'}
+          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+            {step === 'success' ? (
+              <Check className="h-8 w-8" />
+            ) : (
+              <div className="text-2xl font-bold">NG</div>
+            )}
           </div>
           
-          <CardTitle className="text-2xl font-bold text-gray-900">
-            {step === 'success' ? 'Welcome!' : 'NoteGenius'}
-          </CardTitle>
-          
-          <CardDescription className="text-gray-600">
-            {step === 'choose' && 'Choose your verification method'}
-            {step === 'email-input' && 'Enter your email address'}
-            {step === 'email-verify' && 'Check your email for verification code'}
-            {step === 'phone-input' && 'Enter your phone number'}
-            {step === 'phone-verify' && 'Enter the OTP sent to your phone'}
-            {step === 'success' && 'Account verified successfully!'}
-          </CardDescription>
+          <div className="space-y-2">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+              {step === 'success' ? 'Welcome!' : 'NoteGenius'}
+            </CardTitle>
+            
+            <CardDescription className="text-slate-600 text-lg">
+              {step === 'details' && 'Create your account to get started'}
+              {step === 'email-verify' && 'Check your email for verification code'}
+              {step === 'phone-verify' && 'Enter the OTP sent to your phone'}
+              {step === 'success' && 'Account verified successfully!'}
+            </CardDescription>
+          </div>
         </CardHeader>
 
-        <CardContent className="space-y-6">
-          {step === 'choose' && (
-            <div className="space-y-4">
-              <Button
-                onClick={() => setStep('email-input')}
-                className="w-full h-14 text-left justify-start bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200"
-                variant="outline"
-              >
-                <Mail className="h-5 w-5 mr-3" />
-                <div>
-                  <div className="font-medium">Verify with Email</div>
-                  <div className="text-sm text-blue-600">Get a 6-digit code via email</div>
+        <CardContent className="space-y-6 px-8 pb-8">
+          {step === 'details' && (
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm font-medium text-slate-700">
+                  Full Name
+                </Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="pl-10 h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                  />
                 </div>
-              </Button>
-              
-              <Button
-                onClick={() => setStep('phone-input')}
-                className="w-full h-14 text-left justify-start bg-green-50 hover:bg-green-100 text-green-700 border border-green-200"
-                variant="outline"
-              >
-                <Phone className="h-5 w-5 mr-3" />
-                <div>
-                  <div className="font-medium">Verify with Phone</div>
-                  <div className="text-sm text-green-600">Get a 4-digit OTP via SMS</div>
-                </div>
-              </Button>
-            </div>
-          )}
-
-          {step === 'email-input' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12"
-                />
               </div>
+
+              <div className="space-y-4">
+                <Label className="text-sm font-medium text-slate-700">
+                  How would you like to verify your account?
+                </Label>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant={contactMethod === 'email' ? 'default' : 'outline'}
+                    onClick={() => setContactMethod('email')}
+                    className={`h-14 flex-col gap-1 ${
+                      contactMethod === 'email' 
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                        : 'border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Mail className="h-5 w-5" />
+                    <span className="text-sm">Email</span>
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant={contactMethod === 'phone' ? 'default' : 'outline'}
+                    onClick={() => setContactMethod('phone')}
+                    className={`h-14 flex-col gap-1 ${
+                      contactMethod === 'phone' 
+                        ? 'bg-green-600 hover:bg-green-700 text-white' 
+                        : 'border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Phone className="h-5 w-5" />
+                    <span className="text-sm">Phone</span>
+                  </Button>
+                </div>
+              </div>
+
+              {contactMethod === 'email' && (
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+                    Email Address
+                  </Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10 h-12 border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {contactMethod === 'phone' && (
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-sm font-medium text-slate-700">
+                    Phone Number
+                  </Label>
+                  <div className="flex gap-3">
+                    <Select value={countryCode} onValueChange={setCountryCode}>
+                      <SelectTrigger className="w-28 h-12 border-slate-200">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border border-slate-200 shadow-lg">
+                        {countryCodes.map((country) => (
+                          <SelectItem key={country.code} value={country.code}>
+                            {country.flag} {country.code}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="relative flex-1">
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="Phone number"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                        className="pl-10 h-12 border-slate-200 focus:border-green-500 focus:ring-green-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <Button
-                onClick={handleEmailSubmit}
+                onClick={handleDetailsSubmit}
                 disabled={isLoading}
-                className="w-full h-12 bg-blue-600 hover:bg-blue-700"
+                className={`w-full h-12 text-white font-medium shadow-lg transition-all duration-200 ${
+                  contactMethod === 'email' 
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800' 
+                    : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800'
+                }`}
               >
-                {isLoading ? 'Sending...' : 'Send Verification Code'}
+                {isLoading ? 'Processing...' : 'Continue'}
               </Button>
             </div>
           )}
 
           {step === 'email-verify' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-6">
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                  <Mail className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-800">Check your email</h3>
+                <p className="text-slate-600">
+                  We've sent a 6-digit verification code to<br />
+                  <span className="font-medium text-slate-800">{email}</span>
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="emailCode" className="text-sm font-medium text-slate-700">
                   Verification Code
-                </label>
+                </Label>
                 <Input
+                  id="emailCode"
                   type="text"
                   placeholder="Enter 6-digit code"
                   value={emailCode}
                   onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="h-12 text-center text-lg tracking-widest"
+                  className="h-12 text-center text-lg tracking-widest font-mono border-slate-200"
                   maxLength={6}
                 />
-                <p className="text-sm text-gray-500 mt-2">
-                  Code sent to {email}
-                </p>
               </div>
+              
               <Button
                 onClick={handleEmailVerification}
                 disabled={isLoading}
-                className="w-full h-12 bg-blue-600 hover:bg-blue-700"
+                className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium"
               >
                 {isLoading ? 'Verifying...' : 'Verify Email'}
               </Button>
+              
               <Button
-                onClick={handleEmailSubmit}
+                onClick={handleDetailsSubmit}
                 variant="outline"
-                className="w-full"
+                className="w-full border-slate-200 hover:bg-slate-50"
               >
                 Resend Code
               </Button>
-            </div>
-          )}
-
-          {step === 'phone-input' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone Number
-                </label>
-                <div className="flex gap-2">
-                  <Select value={countryCode} onValueChange={setCountryCode}>
-                    <SelectTrigger className="w-32 h-12">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {countryCodes.map((country) => (
-                        <SelectItem key={country.code} value={country.code}>
-                          {country.flag} {country.code}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="tel"
-                    placeholder="Phone number"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-                    className="flex-1 h-12"
-                  />
-                </div>
+              
+              <div className="text-center text-sm text-slate-500">
+                Demo: Use code <span className="font-mono bg-slate-100 px-2 py-1 rounded">123456</span>
               </div>
-              <Button
-                onClick={handlePhoneSubmit}
-                disabled={isLoading}
-                className="w-full h-12 bg-green-600 hover:bg-green-700"
-              >
-                {isLoading ? 'Sending...' : 'Send OTP'}
-              </Button>
             </div>
           )}
 
           {step === 'phone-verify' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-6">
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                  <Phone className="h-8 w-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-800">Check your phone</h3>
+                <p className="text-slate-600">
+                  We've sent a 4-digit OTP to<br />
+                  <span className="font-medium text-slate-800">{countryCode} {phone}</span>
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="phoneCode" className="text-sm font-medium text-slate-700">
                   Verification OTP
-                </label>
+                </Label>
                 <Input
+                  id="phoneCode"
                   type="text"
                   placeholder="Enter 4-digit OTP"
                   value={phoneCode}
                   onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  className="h-12 text-center text-lg tracking-widest"
+                  className="h-12 text-center text-lg tracking-widest font-mono border-slate-200"
                   maxLength={4}
                 />
-                <p className="text-sm text-gray-500 mt-2">
-                  OTP sent to {countryCode} {phone}
-                </p>
               </div>
+              
               <Button
                 onClick={handlePhoneVerification}
                 disabled={isLoading}
-                className="w-full h-12 bg-green-600 hover:bg-green-700"
+                className="w-full h-12 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-medium"
               >
                 {isLoading ? 'Verifying...' : 'Verify Phone'}
               </Button>
+              
               <Button
-                onClick={handlePhoneSubmit}
+                onClick={handleDetailsSubmit}
                 variant="outline"
-                className="w-full"
+                className="w-full border-slate-200 hover:bg-slate-50"
               >
                 Resend OTP
               </Button>
+              
+              <div className="text-center text-sm text-slate-500">
+                Demo: Use OTP <span className="font-mono bg-slate-100 px-2 py-1 rounded">1234</span>
+              </div>
             </div>
           )}
 
           {step === 'success' && (
-            <div className="text-center space-y-4">
-              <div className="text-green-600 text-lg font-medium">
-                Verification Complete!
+            <div className="text-center space-y-6">
+              <div className="space-y-2">
+                <h3 className="text-2xl font-semibold text-slate-800">
+                  Welcome, {name}! 🎉
+                </h3>
+                <p className="text-slate-600 text-lg">
+                  Your account has been verified successfully
+                </p>
               </div>
-              <p className="text-gray-600">
-                You can now access your NoteGenius account
-              </p>
+              
               <Button
                 onClick={() => {
-                  // Navigate to main app
                   toast({ title: "Redirecting to your dashboard..." });
                 }}
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium shadow-lg"
               >
                 Continue to Dashboard
               </Button>
-            </div>
-          )}
-
-          {(step === 'email-verify' || step === 'phone-verify') && (
-            <div className="text-center text-sm text-gray-500">
-              {step === 'email-verify' && "Use code: 123456 for demo"}
-              {step === 'phone-verify' && "Use OTP: 1234 for demo"}
             </div>
           )}
         </CardContent>
